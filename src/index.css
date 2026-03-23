@@ -1,0 +1,125 @@
+/* Import Inter font */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /* Set default dark mode */
+  :root {
+    --background: 15 23 42;
+    --foreground: 248 250 252;
+  }
+
+  html {
+    @apply antialiased;
+  }
+
+  body {
+    @apply bg-surface-900 text-surface-50 font-sans;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar {
+    @apply w-2 h-2;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-surface-800;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-surface-600 rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-surface-500;
+  }
+
+  /* Selection styling */
+  ::selection {
+    @apply bg-primary-500/30;
+  }
+}
+
+@layer components {
+  /* Glass card effect */
+  .glass-card {
+    @apply bg-surface-800/50 backdrop-blur-sm border border-surface-700/50 rounded-xl;
+  }
+
+  /* Gradient text */
+  .gradient-text {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary-400 to-accent-400;
+  }
+
+  /* Button base styles */
+  .btn {
+    @apply inline-flex items-center justify-center rounded-lg font-medium 
+           transition-all duration-200 focus:outline-none focus:ring-2 
+           focus:ring-offset-2 focus:ring-offset-surface-900 disabled:opacity-50 
+           disabled:cursor-not-allowed;
+  }
+
+  .btn-primary {
+    @apply btn bg-gradient-to-r from-primary-500 to-accent-500 text-white 
+           hover:from-primary-600 hover:to-accent-600 focus:ring-primary-500
+           shadow-lg shadow-primary-500/25 hover:shadow-primary-500/40;
+  }
+
+  .btn-secondary {
+    @apply btn bg-surface-700 text-surface-100 hover:bg-surface-600 
+           focus:ring-surface-500;
+  }
+
+  .btn-ghost {
+    @apply btn bg-transparent text-surface-300 hover:bg-surface-700/50 
+           hover:text-surface-100 focus:ring-surface-500;
+  }
+
+  /* Input base styles */
+  .input {
+    @apply w-full px-4 py-2 bg-surface-800 border border-surface-600 rounded-lg
+           text-surface-100 placeholder-surface-500
+           focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent
+           transition-all duration-200;
+  }
+
+  /* Card variations */
+  .card {
+    @apply bg-surface-800 border border-surface-700 rounded-xl p-6;
+  }
+
+  .card-elevated {
+    @apply card shadow-xl shadow-black/20;
+  }
+
+  .card-interactive {
+    @apply card hover:border-primary-500/50 hover:shadow-glow-sm 
+           transition-all duration-300 cursor-pointer;
+  }
+}
+
+@layer utilities {
+  /* Animation delays */
+  .animation-delay-100 { animation-delay: 100ms; }
+  .animation-delay-200 { animation-delay: 200ms; }
+  .animation-delay-300 { animation-delay: 300ms; }
+  .animation-delay-500 { animation-delay: 500ms; }
+
+  /* Text balance */
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  /* Hide scrollbar but keep functionality */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}

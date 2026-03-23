@@ -1,0 +1,126 @@
+# ============================================================================
+# Vol Arb UI - Docker Compose Configuration
+# Development and Production environments
+# ============================================================================
+
+version: '3.8'
+
+services:
+  # ==========================
+  # Development Service
+  # ==========================
+  dev:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+      target: development
+    container_name: vol-arb-ui-dev
+    ports:
+      - "5173:5173"
+    volumes:
+      - ..:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - VITE_API_URL=http://localhost:8000
+      - VITE_WS_URL=ws://localhost:8000/ws
+      - VITE_APP_ENV=development
+    stdin_open: true
+    tty: true
+    networks:
+      - vol-arb-network
+
+  # ==========================
+  # Production Service
+  # ==========================
+  production:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+      target: production
+      args:
+        - VITE_API_URL=${VITE_API_URL:-http://localhost:8000}
+        - VITE_WS_URL=${VITE_WS_URL:-ws://localhost:8000/ws}
+        - VITE_APP_ENV=production
+    container_name: vol-arb-ui-prod
+    ports:
+      - "80:80"
+    environment:
+      - VITE_API_URL=${VITE_API_URL:-http://localhost:8000}
+      - VITE_WS_URL=${VITE_WS_URL:-ws://localhost:8000/ws}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - vol-arb-network
+
+  # ==========================
+  # Test Runner Service
+  # ==========================
+  test:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+      target: development
+    container_name: vol-arb-ui-test
+    volumes:
+      - ..:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=test
+      - CI=true
+    command: npm run test
+    networks:
+      - vol-arb-network
+
+  # ==========================
+  # Test Coverage Service
+  # ==========================
+  coverage:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+      target: development
+    container_name: vol-arb-ui-coverage
+    volumes:
+      - ..:/app
+      - /app/node_modules
+      - ../coverage:/app/coverage
+    environment:
+      - NODE_ENV=test
+      - CI=true
+    command: npm run test:coverage
+    networks:
+      - vol-arb-network
+
+# ==========================
+# Networks
+# ==========================
+networks:
+  vol-arb-network:
+    driver: bridge
+
+# ==========================
+# Usage Examples
+# ==========================
+# Development:
+#   docker-compose -f docker/docker-compose.yml up dev
+#
+# Production:
+#   docker-compose -f docker/docker-compose.yml up production
+#
+# Run tests:
+#   docker-compose -f docker/docker-compose.yml run --rm test
+#
+# Run coverage:
+#   docker-compose -f docker/docker-compose.yml run --rm coverage
+#
+# Build production image:
+#   docker-compose -f docker/docker-compose.yml build production
+#
+# Production with custom API URL:
+#   VITE_API_URL=https://api.example.com docker-compose -f docker/docker-compose.yml up production
