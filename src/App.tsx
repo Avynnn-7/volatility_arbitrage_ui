@@ -12,7 +12,10 @@ import { WizardPage } from '@/features/wizard/WizardPage'
 import { DashboardPage } from '@/features/dashboard/DashboardPage'
 import { AnalysisPage } from '@/features/analysis/AnalysisPage'
 
-// Lazy load heavy 3D components for better initial load
+// Lazy load heavy components for better initial load
+const LiveScannerPage = lazy(() => 
+  import('@/features/live/LiveScannerPage').then(m => ({ default: m.LiveScannerPage }))
+)
 const SurfaceViewerPage = lazy(() => 
   import('@/features/surface-viewer/SurfaceViewerPage').then(m => ({ default: m.SurfaceViewerPage }))
 )
@@ -57,6 +60,15 @@ function AppContent() {
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/analysis" element={<AnalysisPage />} />
               <Route path="/analysis/*" element={<AnalysisPage />} />
+              {/* Live Scanner - lazy loaded */}
+              <Route
+                path="/live"
+                element={
+                  <Suspense fallback={<PageLoader />}>
+                    <LiveScannerPage />
+                  </Suspense>
+                }
+              />
               {/* 3D Surface Viewer - lazy loaded */}
               <Route
                 path="/surface"

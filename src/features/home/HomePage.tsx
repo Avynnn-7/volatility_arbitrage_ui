@@ -30,11 +30,11 @@ const features = [
   },
   {
     icon: Zap,
-    title: 'QP Correction',
+    title: 'Live Scanner',
     description:
-      'Quadratic programming projection onto the arbitrage-free cone with minimal IV adjustment.',
+      'Real-time Upstox API integration for instant NSE/BSE arbitrage detection and trading advice.',
     color: 'from-success-500 to-success-600',
-    link: '/wizard',
+    link: '/live',
   },
   {
     icon: GitCompare,

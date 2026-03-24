@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
-import { Activity, BarChart3, Compass, Home, Settings } from 'lucide-react'
+import { Activity, BarChart3, Compass, Home, Settings, Zap } from 'lucide-react'
 import { cn } from '@/utils/cn'
 import { ThemeToggle } from './ThemeToggle'
 
@@ -8,6 +8,7 @@ const navItems = [
   { path: '/wizard', label: 'Wizard', icon: Compass },
   { path: '/dashboard', label: 'Dashboard', icon: BarChart3 },
   { path: '/analysis', label: 'Analysis', icon: Activity },
+  { path: '/live', label: 'Live', icon: Zap },
 ]
 
 export function Navbar() {
