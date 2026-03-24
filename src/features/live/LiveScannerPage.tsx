@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Spinner } from '@/components/common/Spinner';
-import { AlertCircle, Zap, TrendingUp, RefreshCw, Server, Wifi, WifiOff } from 'lucide-react';
+import { AlertCircle, Zap, TrendingUp, RefreshCw, Server, Wifi } from 'lucide-react';
 
 const API_BASE = 'http://localhost:3001';
 
