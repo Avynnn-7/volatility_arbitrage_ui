@@ -1,44 +1,20 @@
 /**
  * Upstox API client for Vercel serverless functions.
- * Fetches option chain data and converts to vol_arb format.
+ * Supports ALL stocks via dynamic instrument search — no hardcoded limits.
  */
 
-const KNOWN_INSTRUMENTS = {
-  'NSE_INDEX:NIFTY':     'NSE_INDEX|Nifty 50',
-  'NSE_INDEX:BANKNIFTY': 'NSE_INDEX|Nifty Bank',
-  'NSE_INDEX:FINNIFTY':  'NSE_INDEX|Nifty Fin Service',
-  'NSE_INDEX:MIDCPNIFTY':'NSE_INDEX|NIFTY MID SELECT',
-  'NSE_EQ:RELIANCE':     'NSE_EQ|INE002A01018',
-  'NSE_EQ:TCS':          'NSE_EQ|INE467B01029',
-  'NSE_EQ:INFY':         'NSE_EQ|INE009A01021',
-  'NSE_EQ:HDFCBANK':     'NSE_EQ|INE040A01034',
-  'NSE_EQ:ICICIBANK':    'NSE_EQ|INE090A01021',
-  'NSE_EQ:SBIN':         'NSE_EQ|INE062A01020',
-  'NSE_EQ:WIPRO':        'NSE_EQ|INE075A01022',
-  'NSE_EQ:ADANIENT':     'NSE_EQ|INE423A01024',
-  'NSE_EQ:BAJFINANCE':   'NSE_EQ|INE296A01024',
-  'NSE_EQ:HINDUNILVR':   'NSE_EQ|INE030A01027',
-  'NSE_EQ:KOTAKBANK':    'NSE_EQ|INE237A01028',
-  'NSE_EQ:AXISBANK':     'NSE_EQ|INE238A01034',
-  'NSE_EQ:LT':           'NSE_EQ|INE018A01030',
-  'NSE_EQ:NESTLEIND':    'NSE_EQ|INE239A01024',
-  'NSE_EQ:MARUTI':       'NSE_EQ|INE585B01010',
-  'BSE_EQ:RELIANCE':     'BSE_EQ|500325',
-  'BSE_EQ:TCS':          'BSE_EQ|532540',
-  'BSE_EQ:INFY':         'BSE_EQ|500209',
+// Fallback map for common indices (which don't appear in equity search)
+const INDEX_INSTRUMENTS = {
+  'NIFTY':      'NSE_INDEX|Nifty 50',
+  'BANKNIFTY':  'NSE_INDEX|Nifty Bank',
+  'FINNIFTY':   'NSE_INDEX|Nifty Fin Service',
+  'MIDCPNIFTY': 'NSE_INDEX|NIFTY MID SELECT',
+  'SENSEX':     'BSE_INDEX|SENSEX',
 };
 
-export function getSupportedSymbols() {
-  const symbols = new Set();
-  for (const key of Object.keys(KNOWN_INSTRUMENTS)) {
-    symbols.add(key.split(':')[1]);
-  }
-  return [...symbols].sort();
-}
-
-async function upstoxFetch(endpoint, token) {
+async function upstoxFetch(endpoint, token, version = 'v2') {
   const bearer = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
-  const res = await fetch(`https://api.upstox.com/v2${endpoint}`, {
+  const res = await fetch(`https://api.upstox.com/${version}${endpoint}`, {
     headers: { 'Authorization': bearer, 'Accept': 'application/json' },
     signal: AbortSignal.timeout(10000),
   });
@@ -49,11 +25,66 @@ async function upstoxFetch(endpoint, token) {
   return res.json();
 }
 
-export async function fetchOptionChain(symbol, exchange, token) {
-  const instrumentKey = KNOWN_INSTRUMENTS[`${exchange}:${symbol}`];
-  if (!instrumentKey) {
-    throw new Error(`Unknown symbol: ${symbol} on ${exchange}. Supported: ${getSupportedSymbols().join(', ')}`);
+/**
+ * Dynamically resolve any symbol to its Upstox instrument_key.
+ * Uses the Smart Instrument Search API — supports ALL NSE/BSE stocks.
+ */
+export async function resolveInstrumentKey(symbol, exchange, token) {
+  // 1. Check index map first  
+  if (exchange === 'NSE_INDEX' || exchange === 'BSE_INDEX') {
+    const key = INDEX_INSTRUMENTS[symbol];
+    if (key) return key;
+    throw new Error(`Unknown index: ${symbol}. Supported indices: ${Object.keys(INDEX_INSTRUMENTS).join(', ')}`);
   }
+
+  // 2. Use Upstox Smart Instrument Search for equities
+  const seg = exchange === 'BSE_EQ' ? 'EQ' : 'EQ';
+  const exch = exchange === 'BSE_EQ' ? 'BSE' : 'NSE';
+  const searchUrl = `/instruments/search?query=${encodeURIComponent(symbol)}&exchanges=${exch}&segments=${seg}&records=5`;
+
+  const data = await upstoxFetch(searchUrl, token, 'v1');
+  const results = data?.data || [];
+
+  if (results.length === 0) {
+    throw new Error(`No instrument found for "${symbol}" on ${exchange}. Check the symbol name.`);
+  }
+
+  // Find exact match by trading_symbol
+  const exact = results.find(r =>
+    r.trading_symbol?.toUpperCase() === symbol.toUpperCase() ||
+    r.name?.toUpperCase() === symbol.toUpperCase()
+  );
+  const match = exact || results[0];
+  return match.instrument_key;
+}
+
+/**
+ * Search for instruments matching a query string — used for autocomplete.
+ */
+export async function searchInstruments(query, token) {
+  if (!query || query.length < 1) return [];
+
+  try {
+    const data = await upstoxFetch(
+      `/instruments/search?query=${encodeURIComponent(query)}&segments=EQ&records=12`,
+      token, 'v1'
+    );
+    const results = data?.data || [];
+    return results.map(r => ({
+      symbol: r.trading_symbol,
+      name: r.name,
+      exchange: r.exchange,
+      instrumentKey: r.instrument_key,
+      instrumentType: r.instrument_type,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+export async function fetchOptionChain(symbol, exchange, token) {
+  // Dynamically resolve the instrument key
+  const instrumentKey = await resolveInstrumentKey(symbol, exchange, token);
 
   // 1. Fetch spot price (works even after hours)
   let spotPrice = 0;
@@ -71,7 +102,7 @@ export async function fetchOptionChain(symbol, exchange, token) {
     `/option/contract?instrument_key=${encodeURIComponent(instrumentKey)}`, token
   );
   const expiries = [...new Set(expiryData?.data?.map(d => d.expiry).filter(Boolean))].sort();
-  if (expiries.length === 0) throw new Error('No expiry dates returned from Upstox.');
+  if (expiries.length === 0) throw new Error(`No option contracts found for ${symbol}. This stock may not have F&O trading.`);
 
   const targetExpiries = expiries.slice(0, 3);
 
@@ -99,7 +130,6 @@ export async function fetchOptionChain(symbol, exchange, token) {
           spotPrice = item.put_options.underlying_spot_price;
         }
 
-        // CALL side
         const ce = item.call_options?.market_data;
         if (ce) {
           const iv = (ce.iv || 0) / 100;
@@ -112,7 +142,6 @@ export async function fetchOptionChain(symbol, exchange, token) {
           }
         }
 
-        // PUT side
         const pe = item.put_options?.market_data;
         if (pe) {
           const iv = (pe.iv || 0) / 100;

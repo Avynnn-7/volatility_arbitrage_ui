@@ -12,7 +12,7 @@
  *   UPSTOX_ACCESS_TOKEN — Upstox API Bearer token (set in Vercel dashboard)
  */
 
-import { fetchOptionChain, getSupportedSymbols } from './lib/upstox-client.js';
+import { fetchOptionChain } from './lib/upstox-client.js';
 import { analyzeArbitrage } from './lib/arbitrage-engine.js';
 
 export default async function handler(req, res) {
@@ -28,8 +28,7 @@ export default async function handler(req, res) {
   if (!symbol) {
     return res.status(400).json({
       success: false,
-      error: 'Symbol parameter is required.',
-      supportedSymbols: getSupportedSymbols(),
+      error: 'Symbol parameter is required. Enter any NSE/BSE stock or index symbol.',
     });
   }
 
@@ -65,8 +64,7 @@ export default async function handler(req, res) {
       error: err.message,
       symbol: symbol.toUpperCase(),
       exchange,
-      hint: 'Check if the market is open (9:15 AM – 3:30 PM IST) and the symbol is supported.',
-      supportedSymbols: getSupportedSymbols(),
+      hint: 'Check if the market is open (9:15 AM – 3:30 PM IST) and the symbol has F&O trading.',
     });
   }
 }

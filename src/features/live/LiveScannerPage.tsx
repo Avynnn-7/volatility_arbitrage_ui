@@ -1,15 +1,22 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { PageLayout } from '@/components/layout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Spinner } from '@/components/common/Spinner';
-import { AlertCircle, Zap, TrendingUp, RefreshCw, Clock, Activity } from 'lucide-react';
+import { AlertCircle, Zap, TrendingUp, RefreshCw, Clock, Activity, Search } from 'lucide-react';
 
 // Auto-detect: use relative URL on Vercel, localhost for local dev
 const API_BASE = import.meta.env.DEV ? 'http://localhost:3001' : '';
+
+interface SearchResult {
+  symbol: string;
+  name: string;
+  exchange: string;
+  instrumentKey: string;
+  instrumentType: string;
+}
 
 export function LiveScannerPage() {
   const [symbol, setSymbol] = useState('NIFTY');
@@ -18,9 +25,68 @@ export function LiveScannerPage() {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<any | null>(null);
 
+  // Autocomplete state
+  const [searchQuery, setSearchQuery] = useState('NIFTY');
+  const [suggestions, setSuggestions] = useState<SearchResult[]>([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Debounced search
+  const searchInstruments = useCallback(async (query: string) => {
+    if (query.length < 2) {
+      setSuggestions([]);
+      setShowDropdown(false);
+      return;
+    }
+    setSearchLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/search?q=${encodeURIComponent(query)}`);
+      const data = await res.json();
+      setSuggestions(data.results || []);
+      setShowDropdown(true);
+    } catch {
+      setSuggestions([]);
+    } finally {
+      setSearchLoading(false);
+    }
+  }, []);
+
+  const handleSearchChange = (value: string) => {
+    const upper = value.toUpperCase();
+    setSearchQuery(upper);
+    setSymbol(upper);
+    
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    searchTimerRef.current = setTimeout(() => searchInstruments(upper), 250);
+  };
+
+  const selectSuggestion = (s: SearchResult) => {
+    setSymbol(s.symbol);
+    setSearchQuery(s.symbol);
+    // Auto-set exchange based on selection
+    if (s.exchange === 'NSE_EQ' || s.exchange === 'BSE_EQ') {
+      setExchange(s.exchange);
+    }
+    setShowDropdown(false);
+    setSuggestions([]);
+  };
+
+  // Close dropdown on click outside
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
   const handleScan = async () => {
     if (!symbol) return;
-    
+    setShowDropdown(false);
     setLoading(true);
     setError(null);
     setResult(null);
@@ -87,20 +153,57 @@ export function LiveScannerPage() {
               <Zap className="h-5 w-5 text-accent-400" />
               Live Scan Configuration
             </CardTitle>
-            <CardDescription>Enter an NSE/BSE symbol to detect arbitrage opportunities in real-time</CardDescription>
+            <CardDescription>Search any NSE/BSE stock or index — type to search all available instruments</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex flex-col md:flex-row gap-4 items-end">
-              <div className="space-y-2 flex-1">
-                <Label htmlFor="symbol">Symbol</Label>
-                <Input
-                  id="symbol"
-                  placeholder="e.g., NIFTY, RELIANCE, BANKNIFTY"
-                  value={symbol}
-                  onChange={(e) => setSymbol(e.target.value.toUpperCase())}
-                  onKeyDown={(e) => e.key === 'Enter' && handleScan()}
-                />
+              {/* Symbol search with autocomplete */}
+              <div className="space-y-2 flex-1 relative" ref={dropdownRef}>
+                <Label htmlFor="symbol-search">
+                  <Search className="h-3 w-3 inline mr-1" />
+                  Symbol
+                </Label>
+                <div className="relative">
+                  <input
+                    id="symbol-search"
+                    type="text"
+                    placeholder="Type to search... e.g., RELIANCE, TATAMOTORS, NIFTY"
+                    value={searchQuery}
+                    onChange={(e) => handleSearchChange(e.target.value)}
+                    onFocus={() => suggestions.length > 0 && setShowDropdown(true)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { setShowDropdown(false); handleScan(); } }}
+                    className="w-full px-3 py-2 rounded-md text-white bg-surface-900 border border-surface-600 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 outline-none placeholder:text-surface-500 font-medium text-sm"
+                    autoComplete="off"
+                  />
+                  {searchLoading && (
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                      <Spinner size="sm" />
+                    </div>
+                  )}
+                </div>
+
+                {/* Autocomplete dropdown */}
+                {showDropdown && suggestions.length > 0 && (
+                  <div className="absolute z-50 w-full mt-1 bg-surface-900 border border-surface-600 rounded-lg shadow-xl max-h-64 overflow-y-auto">
+                    {suggestions.map((s, i) => (
+                      <button
+                        key={`${s.symbol}-${s.exchange}-${i}`}
+                        onClick={() => selectSuggestion(s)}
+                        className="w-full px-3 py-2.5 text-left hover:bg-surface-700/50 flex items-center justify-between border-b border-surface-800 last:border-b-0 transition-colors"
+                      >
+                        <div>
+                          <span className="font-semibold text-white text-sm">{s.symbol}</span>
+                          <span className="text-surface-400 text-xs ml-2">{s.name}</span>
+                        </div>
+                        <span className="text-xs px-1.5 py-0.5 rounded bg-surface-800 text-surface-400 font-mono">
+                          {s.exchange}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
+
               <div className="space-y-2 flex-1">
                 <Label>Exchange</Label>
                 <Select value={exchange} onValueChange={setExchange}>
@@ -108,9 +211,9 @@ export function LiveScannerPage() {
                     <SelectValue placeholder="Select exchange" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="NSE_EQ">NSE Equity (NSE_EQ)</SelectItem>
-                    <SelectItem value="NSE_INDEX">NSE Index (NSE_INDEX)</SelectItem>
-                    <SelectItem value="BSE_EQ">BSE Equity (BSE_EQ)</SelectItem>
+                    <SelectItem value="NSE_EQ">NSE Equity</SelectItem>
+                    <SelectItem value="NSE_INDEX">NSE Index</SelectItem>
+                    <SelectItem value="BSE_EQ">BSE Equity</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
