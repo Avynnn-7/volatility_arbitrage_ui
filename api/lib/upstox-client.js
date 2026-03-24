@@ -42,7 +42,7 @@ export async function resolveInstrumentKey(symbol, exchange, token) {
   const exch = exchange === 'BSE_EQ' ? 'BSE' : 'NSE';
   const searchUrl = `/instruments/search?query=${encodeURIComponent(symbol)}&exchanges=${exch}&segments=${seg}&records=5`;
 
-  const data = await upstoxFetch(searchUrl, token, 'v1');
+  const data = await upstoxFetch(searchUrl, token);
   const results = data?.data || [];
 
   if (results.length === 0) {
@@ -67,13 +67,13 @@ export async function searchInstruments(query, token) {
   try {
     const data = await upstoxFetch(
       `/instruments/search?query=${encodeURIComponent(query)}&segments=EQ&records=12`,
-      token, 'v1'
+      token
     );
     const results = data?.data || [];
     return results.map(r => ({
       symbol: r.trading_symbol,
       name: r.name,
-      exchange: r.exchange,
+      exchange: r.segment, // v2 'segment' holds "NSE_EQ" which the frontend UI expects
       instrumentKey: r.instrument_key,
       instrumentType: r.instrument_type,
     }));
