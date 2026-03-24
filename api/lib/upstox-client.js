@@ -123,8 +123,9 @@ export async function fetchOptionChain(symbol, exchange, token) {
     const quoteData = await upstoxFetch(
       `/market-quote/quotes?instrument_key=${encodeURIComponent(instrumentKey)}`, token
     );
-    const colonKey = instrumentKey.replace('|', ':');
-    const quoteObj = quoteData?.data?.[instrumentKey] || quoteData?.data?.[colonKey];
+    // V2 API keys the response arbitrarily (e.g. "NSE_EQ:RELIANCE" instead of "NSE_EQ|INE...").
+    // Since we only query 1 instrument, we can safely take the first value.
+    const quoteObj = Object.values(quoteData?.data || {})[0];
     spotPrice = quoteObj?.last_price || quoteObj?.ohlc?.close || 0;
   } catch { /* fallback below */ }
 
