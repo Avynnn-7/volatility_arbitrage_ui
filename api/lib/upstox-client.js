@@ -82,6 +82,37 @@ export async function searchInstruments(query, token) {
   }
 }
 
+// ─── Black-Scholes Implied Volatility Solver (After Hours Fallback) ───
+function normalCDF(x) {
+  const a1 =  0.254829592, a2 = -0.284496736, a3 =  1.421413741;
+  const a4 = -1.453152027, a5 =  1.061405429, p   =  0.3275911;
+  const sign = x < 0 ? -1 : 1;
+  const xAbs = Math.abs(x) / Math.SQRT2;
+  const t = 1.0 / (1.0 + p * xAbs);
+  const y = 1.0 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.exp(-xAbs * xAbs);
+  return 0.5 * (1.0 + sign * y);
+}
+
+function bsPrice(S, K, T, r, q, sigma, type) {
+  if (T <= 0 || sigma <= 0) return Math.max(type === 'CE' ? S - K : K - S, 0);
+  const sqrtT = Math.sqrt(T);
+  const d1 = (Math.log(S / K) + (r - q + 0.5 * sigma * sigma) * T) / (sigma * sqrtT);
+  const d2 = d1 - sigma * sqrtT;
+  if (type === 'CE') return S * Math.exp(-q * T) * normalCDF(d1) - K * Math.exp(-r * T) * normalCDF(d2);
+  else return K * Math.exp(-r * T) * normalCDF(-d2) - S * Math.exp(-q * T) * normalCDF(-d1);
+}
+
+function impliedVolatility(targetPrice, S, K, T, r, q, type) {
+  let low = 0.0001, high = 5.0; // 0% to 500%
+  for (let i = 0; i < 30; i++) {
+    const mid = (low + high) / 2;
+    const price = bsPrice(S, K, T, r, q, mid, type);
+    if (price > targetPrice) high = mid;
+    else low = mid;
+  }
+  return (low + high) / 2;
+}
+
 export async function fetchOptionChain(symbol, exchange, token) {
   // Dynamically resolve the instrument key
   const instrumentKey = await resolveInstrumentKey(symbol, exchange, token);
@@ -132,7 +163,12 @@ export async function fetchOptionChain(symbol, exchange, token) {
 
         const ce = item.call_options?.market_data;
         if (ce) {
-          const iv = (ce.iv || 0) / 100;
+          let iv = (ce.iv || 0) / 100;
+          const price = ce.ltp || ce.close_price;
+          // Fallback to BS impl-vol solver if Upstox IV is missing (after hours) and we have a valid price
+          if (iv <= 0.001 && price > 0 && spotPrice > 0) {
+            iv = impliedVolatility(price, spotPrice, strike, T, 0.065, 0.0, 'CE');
+          }
           if (iv > 0.001) {
             allQuotes.push({
               strike, expiry: parseFloat(T.toFixed(6)), iv,
@@ -144,7 +180,12 @@ export async function fetchOptionChain(symbol, exchange, token) {
 
         const pe = item.put_options?.market_data;
         if (pe) {
-          const iv = (pe.iv || 0) / 100;
+          let iv = (pe.iv || 0) / 100;
+          const price = pe.ltp || pe.close_price;
+          // Fallback to BS impl-vol solver
+          if (iv <= 0.001 && price > 0 && spotPrice > 0) {
+            iv = impliedVolatility(price, spotPrice, strike, T, 0.065, 0.0, 'PE');
+          }
           if (iv > 0.001) {
             allQuotes.push({
               strike, expiry: parseFloat(T.toFixed(6)), iv,
@@ -157,20 +198,10 @@ export async function fetchOptionChain(symbol, exchange, token) {
     } catch { /* skip failed expiries */ }
   }));
 
-  if (!spotPrice) throw new Error('Could not determine spot price. Market may be closed or token may be invalid.');
+  if (!spotPrice) throw new Error('Could not determine spot price. Check if the symbol is valid.');
 
   if (allQuotes.length === 0) {
-    const now = new Date();
-    const istHour = (now.getUTCHours() + 5) % 24 + (now.getUTCMinutes() + 30 >= 60 ? 1 : 0);
-    const marketOpen = istHour >= 9 && istHour < 16;
-    if (!marketOpen) {
-      throw new Error(
-        `Market is currently closed (IST ~${istHour}:${String(now.getUTCMinutes()).padStart(2,'0')}). ` +
-        `IV data is only available during market hours (9:15 AM – 3:30 PM IST). ` +
-        `Spot price: ₹${spotPrice.toFixed(2)}.`
-      );
-    }
-    throw new Error('No valid option quotes with IV data returned.');
+    throw new Error('No valid option quotes with IV data (or traded prices) could be calculated.');
   }
 
   return {

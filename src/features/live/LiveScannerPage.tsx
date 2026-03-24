@@ -16,6 +16,7 @@ interface SearchResult {
   exchange: string;
   instrumentKey: string;
   instrumentType: string;
+  hasFO?: boolean;
 }
 
 export function LiveScannerPage() {
@@ -141,8 +142,8 @@ export function LiveScannerPage() {
           {marketOpen ? <Activity className="h-3 w-3 animate-pulse" /> : <Clock className="h-3 w-3" />}
           <span>
             {marketOpen 
-              ? 'NSE Market is OPEN — Live IV data available' 
-              : `NSE Market is CLOSED (IST ${istHour}:${String(istMin).padStart(2,'0')}) — IV data available 9:15 AM – 3:30 PM IST`}
+              ? 'NSE Market is OPEN — Live IV data streaming' 
+              : `NSE Market is CLOSED (IST ${istHour}:${String(istMin).padStart(2,'0')}) — Scanning based on last closing prices`}
           </span>
         </div>
         
@@ -195,9 +196,17 @@ export function LiveScannerPage() {
                           <span className="font-semibold text-white text-sm">{s.symbol}</span>
                           <span className="text-surface-400 text-xs ml-2">{s.name}</span>
                         </div>
-                        <span className="text-xs px-1.5 py-0.5 rounded bg-surface-800 text-surface-400 font-mono">
-                          {s.exchange}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          {s.hasFO === false && (
+                            <span className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-warning-500/10 text-warning-400 border border-warning-500/20" title="This stock does not have F&O trading">
+                              <AlertCircle className="w-3 h-3" />
+                              No F&O
+                            </span>
+                          )}
+                          <span className="text-xs px-1.5 py-0.5 rounded bg-surface-800 text-surface-400 font-mono">
+                            {s.exchange}
+                          </span>
+                        </div>
                       </button>
                     ))}
                   </div>
