@@ -1,0 +1,272 @@
+﻿
+C:\Users\stars\OneDrive\Desktop\volatility\vol_arb_claude\vol_arb_ui\src\components\accessibility\VisuallyHidden.tsx
+  103:14  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Users\stars\OneDrive\Desktop\volatility\vol_arb_claude\vol_arb_ui\src\components\data\data-table.tsx
+  51:17  warning  Compilation Skipped: Use of incompatible library
+
+This API returns functions which cannot be memoized without leading to stale UI. To prevent this, by default React Compiler will skip memoizing this component/hook. However, you may see issues if values from this API are passed to other components/hooks that are memoized.
+
+C:\Users\stars\OneDrive\Desktop\volatility\vol_arb_claude\vol_arb_ui\src\components\data\data-table.tsx:51:17
+  49 |   const [globalFilter, setGlobalFilter] = useState('');
+  50 |
+> 51 |   const table = useReactTable({
+     |                 ^^^^^^^^^^^^^ TanStack Table's `useReactTable()` API returns functions that cannot be memoized safely
+  52 |     data,
+  53 |     columns,
+  54 |     getCoreRowModel: getCoreRowModel(),  react-hooks/incompatible-library
+
+C:\Users\stars\OneDrive\Desktop\volatility\vol_arb_claude\vol_arb_ui\src\components\form\form.tsx
+  159:3  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Users\stars\OneDrive\Desktop\volatility\vol_arb_claude\vol_arb_ui\src\components\providers\toast-provider.tsx
+  30:10  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Users\stars\OneDrive\Desktop\volatility\vol_arb_claude\vol_arb_ui\src\components\three\ArbitrageHighlights.tsx
+  38:11  error  '_scaleY' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\stars\OneDrive\Desktop\volatility\vol_arb_claude\vol_arb_ui\src\components\three\LocalVolSurface.tsx
+  235:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\stars\OneDrive\Desktop\volatility\vol_arb_claude\vol_arb_ui\src\components\three\SurfaceAnimations.tsx
+  124:7   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\stars\OneDrive\Desktop\volatility\vol_arb_claude\vol_arb_ui\src\components\three\SurfaceAnimations.tsx:124:7
+  122 |       isTransitioning.current = true;
+  123 |       startTime.current = null;
+> 124 |       setProgress(0);
+      |       ^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  125 |     }
+  126 |   }, [fromGeometry, toGeometry]);
+  127 |     react-hooks/set-state-in-effect
+  267:73  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      @typescript-eslint/no-explicit-any
+
+C:\Users\stars\OneDrive\Desktop\volatility\vol_arb_claude\vol_arb_ui\src\components\three\SurfaceComparison.tsx
+  156:17  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Users\stars\OneDrive\Desktop\volatility\vol_arb_claude\vol_arb_ui\src\components\three\SurfaceControls.tsx
+  11:14  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+  56:32  error  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+
+C:\Users\stars\OneDrive\Desktop\volatility\vol_arb_claude\vol_arb_ui\src\components\three\SurfaceExport.tsx
+   23:17  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+   85:14  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+  174:17  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+  197:16  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Users\stars\OneDrive\Desktop\volatility\vol_arb_claude\vol_arb_ui\src\components\ui\ReportBuilder.tsx
+  44:9  warning  The 'violations' logical expression could make the dependencies of useCallback Hook (at line 88) change on every render. To fix this, wrap the initialization of 'violations' in its own useMemo() Hook                                        react-hooks/exhaustive-deps
+  50:9  warning  The 'corrections' conditional could make the dependencies of useCallback Hook (at line 88) change on every render. Move it inside the useCallback callback. Alternatively, wrap the initialization of 'corrections' in its own useMemo() Hook  react-hooks/exhaustive-deps
+
+C:\Users\stars\OneDrive\Desktop\volatility\vol_arb_claude\vol_arb_ui\src\components\ui\badge.tsx
+  38:17  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Users\stars\OneDrive\Desktop\volatility\vol_arb_claude\vol_arb_ui\src\components\ui\button.tsx
+  86:18  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Users\stars\OneDrive\Desktop\volatility\vol_arb_claude\vol_arb_ui\src\features\analysis\LocalVolComparison.tsx
+  260:40  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  309:40  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\stars\OneDrive\Desktop\volatility\vol_arb_claude\vol_arb_ui\src\features\surface-viewer\SurfaceViewerPage.tsx
+   83:9   error  Unexpected any. Specify a different type        @typescript-eslint/no-explicit-any
+  191:15  error  '_gridData' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\stars\OneDrive\Desktop\volatility\vol_arb_claude\vol_arb_ui\src\features\wizard\WizardPage.tsx
+  108:7  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\stars\OneDrive\Desktop\volatility\vol_arb_claude\vol_arb_ui\src\features\wizard\WizardPage.tsx:108:7
+  106 |       const maturities = [...new Set(localData.parsedQuotes.map((q) => q.maturity))].sort((a, b) => a - b);
+  107 |       
+> 108 |       setLocalData((prev) => ({
+      |       ^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  109 |         ...prev,
+  110 |         selectedStrikes: strikes,
+  111 |         selectedMaturities: maturities,  react-hooks/set-state-in-effect
+
+C:\Users\stars\OneDrive\Desktop\volatility\vol_arb_claude\vol_arb_ui\src\features\wizard\steps\Step2Configuration.tsx
+  123:21  warning  Compilation Skipped: Use of incompatible library
+
+This API returns functions which cannot be memoized without leading to stale UI. To prevent this, by default React Compiler will skip memoizing this component/hook. However, you may see issues if values from this API are passed to other components/hooks that are memoized.
+
+C:\Users\stars\OneDrive\Desktop\volatility\vol_arb_claude\vol_arb_ui\src\features\wizard\steps\Step2Configuration.tsx:123:21
+  121 |   });
+  122 |
+> 123 |   const watchSpot = form.watch('spotPrice');
+      |                     ^^^^ React Hook Form's `useForm()` API returns a `watch()` function which cannot be memoized safely.
+  124 |
+  125 |   // Calculate filtered data points based on selection
+  126 |   const filteredDataCount = useMemo(() => {  react-hooks/incompatible-library
+
+C:\Users\stars\OneDrive\Desktop\volatility\vol_arb_claude\vol_arb_ui\src\hooks\useApiStatus.ts
+  25:7  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\stars\OneDrive\Desktop\volatility\vol_arb_claude\vol_arb_ui\src\hooks\useApiStatus.ts:25:7
+  23 |   useEffect(() => {
+  24 |     if (isLoading) {
+> 25 |       setStatus('checking')
+     |       ^^^^^^^^^ Avoid calling setState() directly within an effect
+  26 |     } else if (error) {
+  27 |       setStatus('disconnected')
+  28 |     } else if (data) {  react-hooks/set-state-in-effect
+
+C:\Users\stars\OneDrive\Desktop\volatility\vol_arb_claude\vol_arb_ui\src\hooks\useErrorHandler.ts
+  196:32  error  Error: Cannot access variable before it is declared
+
+`withErrorHandling` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+C:\Users\stars\OneDrive\Desktop\volatility\vol_arb_claude\vol_arb_ui\src\hooks\useErrorHandler.ts:196:32
+  194 |     async <T,>(fn: () => Promise<T>, context?: string): Promise<T | undefined> => {
+  195 |       // Store for potential retry
+> 196 |       retryRef.current = () => withErrorHandling(fn, context)
+      |                                ^^^^^^^^^^^^^^^^^ `withErrorHandling` accessed before it is declared
+  197 |       
+  198 |       try {
+  199 |         clearError()
+
+C:\Users\stars\OneDrive\Desktop\volatility\vol_arb_claude\vol_arb_ui\src\hooks\useErrorHandler.ts:193:3
+  191 |    * Wrap an async function with error handling
+  192 |    */
+> 193 |   const withErrorHandling = useCallback(
+      |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 194 |     async <T,>(fn: () => Promise<T>, context?: string): Promise<T | undefined> => {
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 195 |       // Store for potential retry
+      ΓÇª
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 206 |     [handleError, clearError]
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 207 |   )
+      | ^^^^ `withErrorHandling` is declared here
+  208 |
+  209 |   /**
+  210 |    * Wrap an async function with retry logic  react-hooks/immutability
+
+C:\Users\stars\OneDrive\Desktop\volatility\vol_arb_claude\vol_arb_ui\src\hooks\usePDFGeneration.tsx
+  107:13  error  'chartImages' is never reassigned. Use 'const' instead  prefer-const
+
+C:\Users\stars\OneDrive\Desktop\volatility\vol_arb_claude\vol_arb_ui\src\hooks\useSurfaceInteraction.ts
+  192:9  error  '_data' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\stars\OneDrive\Desktop\volatility\vol_arb_claude\vol_arb_ui\src\hooks\useWizardState.ts
+  23:18  error  '_WizardState' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\stars\OneDrive\Desktop\volatility\vol_arb_claude\vol_arb_ui\src\utils\accessibility\a11yUtils.ts
+  260:42  error  React Hook "useId" cannot be called inside a callback. React Hooks must be called in a React function component or a custom React Hook function  react-hooks/rules-of-hooks
+
+C:\Users\stars\OneDrive\Desktop\volatility\vol_arb_claude\vol_arb_ui\src\utils\performance\memoHelpers.ts
+  91:7   error  Error: Cannot access refs during render
+
+React refs are values that are not needed for rendering. Refs should only be accessed outside of render, such as in event handlers or effects. Accessing a ref value (the `current` property) during render can cause your component not to update as expected (https://react.dev/reference/react/useRef).
+
+C:\Users\stars\OneDrive\Desktop\volatility\vol_arb_claude\vol_arb_ui\src\utils\performance\memoHelpers.ts:91:7
+  89 |   const ref = useRef<{ deps: DependencyList; value: T }>()
+  90 |
+> 91 |   if (!ref.current || !deepEqual(ref.current.deps, deps)) {
+     |       ^^^^^^^^^^^^ Cannot access ref value during render
+  92 |     ref.current = { deps, value: factory() }
+  93 |   }
+  94 |                                                                                                                               react-hooks/refs
+  91:7   error  Error: Cannot access refs during render
+
+React refs are values that are not needed for rendering. Refs should only be accessed outside of render, such as in event handlers or effects. Accessing a ref value (the `current` property) during render can cause your component not to update as expected (https://react.dev/reference/react/useRef).
+
+C:\Users\stars\OneDrive\Desktop\volatility\vol_arb_claude\vol_arb_ui\src\utils\performance\memoHelpers.ts:91:7
+  89 |   const ref = useRef<{ deps: DependencyList; value: T }>()
+  90 |
+> 91 |   if (!ref.current || !deepEqual(ref.current.deps, deps)) {
+     |       ^^^^^^^^^^^^ Cannot access ref value during render
+  92 |     ref.current = { deps, value: factory() }
+  93 |   }
+  94 |                                                                                                                               react-hooks/refs
+  91:7   error  Error: Cannot access refs during render
+
+React refs are values that are not needed for rendering. Refs should only be accessed outside of render, such as in event handlers or effects. Accessing a ref value (the `current` property) during render can cause your component not to update as expected (https://react.dev/reference/react/useRef).
+
+C:\Users\stars\OneDrive\Desktop\volatility\vol_arb_claude\vol_arb_ui\src\utils\performance\memoHelpers.ts:91:7
+  89 |   const ref = useRef<{ deps: DependencyList; value: T }>()
+  90 |
+> 91 |   if (!ref.current || !deepEqual(ref.current.deps, deps)) {
+     |       ^^^^^^^^^^^^ Cannot access ref value during render
+  92 |     ref.current = { deps, value: factory() }
+  93 |   }
+  94 |                                                                                                                               react-hooks/refs
+  91:8   error  Error: Cannot access refs during render
+
+React refs are values that are not needed for rendering. Refs should only be accessed outside of render, such as in event handlers or effects. Accessing a ref value (the `current` property) during render can cause your component not to update as expected (https://react.dev/reference/react/useRef).
+
+C:\Users\stars\OneDrive\Desktop\volatility\vol_arb_claude\vol_arb_ui\src\utils\performance\memoHelpers.ts:91:8
+  89 |   const ref = useRef<{ deps: DependencyList; value: T }>()
+  90 |
+> 91 |   if (!ref.current || !deepEqual(ref.current.deps, deps)) {
+     |        ^^^^^^^^^^^ Cannot access ref value during render
+  92 |     ref.current = { deps, value: factory() }
+  93 |   }
+  94 |
+
+To initialize a ref only once, check that the ref is null with the pattern `if (ref.current == null) { ref.current = ... }`  react-hooks/refs
+  91:34  error  Error: Cannot access refs during render
+
+React refs are values that are not needed for rendering. Refs should only be accessed outside of render, such as in event handlers or effects. Accessing a ref value (the `current` property) during render can cause your component not to update as expected (https://react.dev/reference/react/useRef).
+
+C:\Users\stars\OneDrive\Desktop\volatility\vol_arb_claude\vol_arb_ui\src\utils\performance\memoHelpers.ts:91:34
+  89 |   const ref = useRef<{ deps: DependencyList; value: T }>()
+  90 |
+> 91 |   if (!ref.current || !deepEqual(ref.current.deps, deps)) {
+     |                                  ^^^^^^^^^^^^^^^^ Passing a ref to a function may read its value during render
+  92 |     ref.current = { deps, value: factory() }
+  93 |   }
+  94 |                                                                        react-hooks/refs
+  95:10  error  Error: Cannot access refs during render
+
+React refs are values that are not needed for rendering. Refs should only be accessed outside of render, such as in event handlers or effects. Accessing a ref value (the `current` property) during render can cause your component not to update as expected (https://react.dev/reference/react/useRef).
+
+C:\Users\stars\OneDrive\Desktop\volatility\vol_arb_claude\vol_arb_ui\src\utils\performance\memoHelpers.ts:95:10
+  93 |   }
+  94 |
+> 95 |   return ref.current.value
+     |          ^^^^^^^^^^^^^^^^^ Cannot access ref value during render
+  96 | }
+  97 |
+  98 | /**                                                                                                                                                                                                                                                         react-hooks/refs
+
+C:\Users\stars\OneDrive\Desktop\volatility\vol_arb_claude\vol_arb_ui\src\utils\performance\virtualizedTable.tsx
+  101:26  warning  Compilation Skipped: Use of incompatible library
+
+This API returns functions which cannot be memoized without leading to stale UI. To prevent this, by default React Compiler will skip memoizing this component/hook. However, you may see issues if values from this API are passed to other components/hooks that are memoized.
+
+C:\Users\stars\OneDrive\Desktop\volatility\vol_arb_claude\vol_arb_ui\src\utils\performance\virtualizedTable.tsx:101:26
+   99 |
+  100 |   // Initialize virtualizer
+> 101 |   const rowVirtualizer = useVirtualizer({
+      |                          ^^^^^^^^^^^^^^ TanStack Virtual's `useVirtualizer()` API returns functions that cannot be memoized safely
+  102 |     count: data.length,
+  103 |     getScrollElement: () => parentRef.current,
+  104 |     estimateSize: () => rowHeight,  react-hooks/incompatible-library
+  322:14  error    Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         react-refresh/only-export-components
+  403:14  error    Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         react-refresh/only-export-components
+
+C:\Users\stars\OneDrive\Desktop\volatility\vol_arb_claude\vol_arb_ui\src\utils\surfaceGeometry.ts
+  323:3  error  '_scaleY' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+Γ£û 41 problems (36 errors, 5 warnings)
+  1 error and 0 warnings potentially fixable with the `--fix` option.
+

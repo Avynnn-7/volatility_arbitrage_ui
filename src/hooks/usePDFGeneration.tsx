@@ -104,7 +104,7 @@ export function usePDFGeneration(): UsePDFGenerationReturn {
 
       try {
         // Step 1: Capture charts if requested
-        let chartImages: ReportChartImages = {}
+        const chartImages: ReportChartImages = {}
 
         if (mergedOptions.includeCharts) {
           setProgress(10)

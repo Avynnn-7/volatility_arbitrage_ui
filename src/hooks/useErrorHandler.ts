@@ -191,9 +191,9 @@ export function useErrorHandler(
    * Wrap an async function with error handling
    */
   const withErrorHandling = useCallback(
-    async <T,>(fn: () => Promise<T>, context?: string): Promise<T | undefined> => {
+    async function wrapped<T>(fn: () => Promise<T>, context?: string): Promise<T | undefined> {
       // Store for potential retry
-      retryRef.current = () => withErrorHandling(fn, context)
+      retryRef.current = () => wrapped(fn, context)
       
       try {
         clearError()

@@ -121,7 +121,7 @@ export function TransitionSurface({
     if (fromGeometry && toGeometry) {
       isTransitioning.current = true;
       startTime.current = null;
-      setProgress(0);
+      setTimeout(() => setProgress(0), 0);
     }
   }, [fromGeometry, toGeometry]);
   

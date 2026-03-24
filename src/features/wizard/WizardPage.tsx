@@ -105,11 +105,13 @@ export function WizardPage() {
       const strikes = [...new Set(localData.parsedQuotes.map((q) => q.strike))].sort((a, b) => a - b);
       const maturities = [...new Set(localData.parsedQuotes.map((q) => q.maturity))].sort((a, b) => a - b);
       
-      setLocalData((prev) => ({
-        ...prev,
-        selectedStrikes: strikes,
-        selectedMaturities: maturities,
-      }));
+      setTimeout(() => {
+        setLocalData((prev) => ({
+          ...prev,
+          selectedStrikes: strikes,
+          selectedMaturities: maturities,
+        }));
+      }, 0);
     }
   }, [localData.parsedQuotes, localData.selectedStrikes.length]);
 

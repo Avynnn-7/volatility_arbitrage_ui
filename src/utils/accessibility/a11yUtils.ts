@@ -257,7 +257,8 @@ export function useId(prefix: string = 'id'): string {
  * Hook for managing aria-describedby relationships
  */
 export function useAriaDescribedBy(descriptions: string[]) {
-  const ids = descriptions.map((_, i) => useId(`desc-${i}`))
+  const baseId = useId('desc-group')
+  const ids = descriptions.map((_, i) => `${baseId}-${i}`)
   const describedBy = ids.join(' ')
   
   return {

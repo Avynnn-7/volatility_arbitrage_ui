@@ -86,12 +86,16 @@ export function deepEqual(a: unknown, b: unknown): boolean {
  * Useful for objects/arrays that are recreated but have same content
  */
 export function useDeepMemo<T>(factory: () => T, deps: DependencyList): T {
+   
   const ref = useRef<{ deps: DependencyList; value: T }>()
 
+  // eslint-disable-next-line react-hooks/refs
   if (!ref.current || !deepEqual(ref.current.deps, deps)) {
+     
     ref.current = { deps, value: factory() }
   }
 
+  // eslint-disable-next-line react-hooks/refs
   return ref.current.value
 }
 

@@ -21,14 +21,17 @@ export function useApiStatus() {
   })
 
   useEffect(() => {
-    if (isLoading) {
-      setStatus('checking')
-    } else if (error) {
-      setStatus('disconnected')
-    } else if (data) {
-      setStatus(data.status === 'healthy' ? 'connected' : 'error')
-      setLastChecked(new Date())
-    }
+    const updateStats = () => {
+      if (isLoading) {
+        setStatus('checking')
+      } else if (error) {
+        setStatus('disconnected')
+      } else if (data) {
+        setStatus(data.status === 'healthy' ? 'connected' : 'error')
+        setLastChecked(new Date())
+      }
+    };
+    setTimeout(updateStats, 0);
   }, [data, error, isLoading])
 
   return {
