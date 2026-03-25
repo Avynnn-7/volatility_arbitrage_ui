@@ -329,7 +329,7 @@ function generateTradeRecommendations(surface, violations, rawQuotes, symbolName
       riskPerLot: Math.round(maxRisk * lotSize * 100) / 100,
       lotSize,
       breakeven: [Math.round(breakeven1 * 100) / 100, Math.round(breakeven2 * 100) / 100],
-      riskRewardRatio: maxRisk > 0 ? Math.round((maxProfit / maxRisk) * 100) / 100 : Infinity,
+      riskRewardRatio: maxRisk > 0 ? Math.round((maxProfit / maxRisk) * 100) / 100 : 9999,
       minLegVolume: minVol,
       severity: v.severity > 0.7 ? 'CRITICAL' : v.severity > 0.4 ? 'HIGH' : 'MEDIUM',
       urgency: v.severity > 0.7 ? 'Act immediately' : v.severity > 0.4 ? 'Act within session' : 'Monitor',
@@ -381,7 +381,7 @@ function generateTradeRecommendations(surface, violations, rawQuotes, symbolName
       ivNear: Math.round(ivNear * 10000) / 100, // as percentage
       ivFar: Math.round(ivFar * 10000) / 100,
       ivDiff: Math.round((ivNear - ivFar) * 10000) / 100,
-      riskRewardRatio: maxRisk > 0 ? Math.round((maxProfit / maxRisk) * 100) / 100 : Infinity,
+      riskRewardRatio: maxRisk > 0 ? Math.round((maxProfit / maxRisk) * 100) / 100 : 9999,
       severity: v.severity > 0.5 ? 'HIGH' : 'MEDIUM',
       urgency: v.severity > 0.5 ? 'Act within session' : 'Monitor',
       violationMagnitude: Math.round(v.magnitude * 10000) / 10000,

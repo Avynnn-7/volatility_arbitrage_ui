@@ -421,7 +421,7 @@ export function LiveScannerPage() {
                             <div className="flex justify-between p-2 bg-surface-800 rounded">
                               <span className="text-surface-400">R:R Ratio:</span>
                               <span className="text-primary-400 font-bold">
-                                {trade.riskRewardRatio === Infinity ? '∞ (free)' : `${trade.riskRewardRatio}:1`}
+                                {trade.riskRewardRatio >= 9999 ? '∞ (riskless)' : `${trade.riskRewardRatio}:1`}
                               </span>
                             </div>
                             <div className="flex justify-between p-2 bg-surface-800 rounded">
