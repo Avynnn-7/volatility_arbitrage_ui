@@ -236,17 +236,9 @@ export function LiveScannerPage() {
                           <span className="font-semibold text-white text-sm">{s.symbol}</span>
                           <span className="text-surface-400 text-xs ml-2">{s.name}</span>
                         </div>
-                        <div className="flex items-center gap-2">
-                          {s.hasFO === false && (
-                            <span className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-warning-500/10 text-warning-400 border border-warning-500/20" title="This stock does not have F&O trading">
-                              <AlertCircle className="w-3 h-3" />
-                              No F&O
-                            </span>
-                          )}
-                          <span className="text-xs px-1.5 py-0.5 rounded bg-surface-800 text-surface-400 font-mono">
-                            {s.exchange}
-                          </span>
-                        </div>
+                        <span className="text-xs px-1.5 py-0.5 rounded bg-surface-800 text-surface-400 font-mono">
+                          {s.exchange}
+                        </span>
                       </button>
                     ))}
                   </div>
