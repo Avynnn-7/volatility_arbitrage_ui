@@ -1,48 +1,79 @@
-# Volatility Arbitrage Detector UI
+# ⚡ Volatility Arbitrage Scanner
 
-A professional React application designed to visualize and analyze implied volatility surfaces, detect static arbitrage opportunities, and interact with the Volatility Arbitrage backend engine.
+**Live Site → [volarbui.vercel.app/live](https://volarbui.vercel.app/live)**
 
-## Overview
+A real-time options arbitrage detection engine that scans the NSE/BSE volatility surface for structural mispricings and generates actionable trade recommendations — all from a single hosted web app. No terminal, no downloads, no setup.
 
-This application provides a comprehensive dashboard for quantitative analysts and options traders to:
-- **Visualize Volatility Surfaces**: Interactive 3D charts rendering raw and arbitrage-free volatility surfaces.
-- **Detect Arbitrage**: Instantly identify calendar, butterfly, and monotonicity arbitrage violations using real-time data from the C++ computational engine.
-- **Correct Surfaces**: Integrate with quadratic programming (QP) solvers to project invalid surfaces onto the arbitrage-free cone and view the corrected volatility smiles.
-- **Real-time Engine Interaction**: Communicate seamlessly with the high-performance C++ arbitrage detection engine.
+![License](https://img.shields.io/badge/license-MIT-blue) ![Deploy](https://img.shields.io/badge/deployed-Vercel-black)
 
-## Features
+## What It Does
 
-- **Interactive Market Data Upload**: Easily upload JSON market quotes representing options chains.
-- **Advanced 3D Modeling**: Utilizing Plotly for rich, interactive top-down and 3D wireframe plots of the SVI-fitted surface.
-- **Live Arbitrage Indicators**: Detailed tabular output highlighting specific points of butterfly or calendar arbitrage.
-- **Responsive Modern Design**: Built with React, TypeScript, and Vite for lightning-fast performance and a dynamic, user-friendly interface using Tailwind CSS and Lucide React icons.
+1. **Enter any stock or index** — dynamic autocomplete searches the entire NSE/BSE catalog via Upstox Smart Instrument Search
+2. **Fetches live option chain** — spot price, all strikes, up to 3 nearest expiries, real-time bid/ask/IV
+3. **Builds the implied volatility surface** — interpolates, extrapolates, and fills gaps
+4. **Detects arbitrage violations** — butterfly (convexity), calendar (total variance), monotonicity, and extreme IV violations
+5. **Generates trade recommendations** — using actual market bid/ask prices, with correct risk/profit math, lot sizes, breakevens, and risk-reward ratios
+6. **Auto-refreshes every 5 seconds** — "Go Live" mode streams updates seamlessly without interrupting the UI
 
-## Quick Start
+## Key Features
 
-### Prerequisites
-- Node.js (v18+)
-- Volatility Arbitrage backend execution engine
-
-### Installation
-
-```bash
-# Install dependencies
-npm install
-
-# Start development server
-npm run dev
-
-# Build for production
-npm run build
-```
+| Feature | Details |
+|---|---|
+| **Any Stock** | Dynamic search — not limited to a fixed list. Type any NSE/BSE symbol. |
+| **F&O Marker** | Stocks without options trading are flagged with a ⚠️ badge in search results. |
+| **After-Hours** | Custom Black-Scholes IV solver calculates implied volatility from the last traded price when the market is closed. |
+| **Correct Math** | Trade P&L uses actual bid/ask prices. Butterfly maxProfit = spreadWidth − netDebit. Vertical maxRisk accounts for credit received. |
+| **Lot Sizes** | Shows profit/risk per NSE lot (e.g., NIFTY=25, RELIANCE=250). |
+| **Live Streaming** | 5-second auto-refresh with seamless background updates — no loading flash. |
+| **Zero Setup** | Fully hosted on Vercel. API tokens are server-side environment variables. |
 
 ## Architecture
 
-The frontend is built on a modern stack:
-* **Framework**: React 18 + Vite
-* **Language**: TypeScript
-* **Styling**: Tailwind CSS for utility-first styling
-* **Icons**: Lucide React
-* **Charts**: Plotly.js for both 2D slices and complex 3D surface charts
+```
+Browser (React/Vite)
+  ↓ fetch every 5s
+Vercel Serverless Functions
+  ├── /api/search   → Upstox Smart Instrument Search API
+  ├── /api/analyze  → Upstox Option Chain + Market Quote APIs
+  │     ├── upstox-client.js  (API client + BS IV solver + expiry cache)
+  │     └── arbitrage-engine.js  (violation detection + profit advisor)
+  └── Static SPA (React UI)
+```
 
-The UI delegates heavy calculation to the highly optimized C++ mathematical engine, focusing on providing a seamless and highly responsive user experience.
+**Stack**: React 18, TypeScript, Vite, Vercel Serverless, Upstox v2 API
+
+## Security
+
+- **API tokens are NEVER in the codebase** — stored as encrypted Vercel environment variables
+- `.env` files are strictly gitignored (`.env`, `.env.*`, `*.env`)
+- All API calls are proxied server-side — tokens never reach the browser
+
+## Development
+
+```bash
+npm install
+npm run dev        # Local dev server on :5173
+```
+
+Create a `.env` file (gitignored) for local development:
+```
+UPSTOX_ACCESS_TOKEN=your_token_here
+```
+
+## Deployment
+
+The app auto-deploys to Vercel on push. To manually deploy:
+```bash
+npx vercel deploy --prod --yes
+```
+
+If the Upstox token expires, update it:
+```bash
+npx vercel env rm UPSTOX_ACCESS_TOKEN production --yes
+npx vercel env add UPSTOX_ACCESS_TOKEN production
+npx vercel deploy --prod --yes
+```
+
+## License
+
+MIT
