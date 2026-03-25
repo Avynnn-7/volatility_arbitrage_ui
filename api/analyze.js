@@ -45,6 +45,7 @@ export default async function handler(req, res) {
   try {
     // 1. Fetch option chain from Upstox
     const chainData = await fetchOptionChain(String(symbol).toUpperCase(), String(exchange), token);
+    chainData.symbol = String(symbol).toUpperCase();
 
     // 2. Run arbitrage analysis
     const result = analyzeArbitrage(chainData);

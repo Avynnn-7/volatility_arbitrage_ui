@@ -219,19 +219,57 @@ function detectViolations(surface) {
   return violations;
 }
 
-// ─── Profit Advisor ─────────────────────────────────────────────────────────
+// ─── Profit Advisor (Market-Price Based) ────────────────────────────────────
 
-function generateTradeRecommendations(surface, violations) {
+// Common NSE lot sizes (if not available, default to 1)
+const LOT_SIZES = {
+  'NIFTY': 25, 'BANKNIFTY': 15, 'FINNIFTY': 25, 'MIDCPNIFTY': 50,
+  'RELIANCE': 250, 'TCS': 175, 'INFY': 300, 'HDFCBANK': 550, 'ICICIBANK': 700,
+  'SBIN': 1500, 'AXISBANK': 600, 'KOTAKBANK': 400, 'BAJFINANCE': 125,
+  'HINDUNILVR': 300, 'ITC': 1600, 'LT': 375, 'TATAMOTORS': 575,
+  'WIPRO': 1500, 'TATASTEEL': 1100, 'BHARTIARTL': 475, 'MARUTI': 100,
+};
+
+function generateTradeRecommendations(surface, violations, rawQuotes, symbolName) {
   const { strikes, expiries, ivGrid, marketData } = surface;
   const { spot, riskFreeRate: r, dividendYield: q } = marketData;
   const recommendations = [];
+  const lotSize = LOT_SIZES[symbolName?.toUpperCase()] || 1;
 
-  function callPrice(K, T) {
-    // Find nearest grid point for sigma
-    const ti = expiries.reduce((best, e, i) => Math.abs(e - T) < Math.abs(expiries[best] - T) ? i : best, 0);
-    const ki = strikes.reduce((best, s, i) => Math.abs(s - K) < Math.abs(strikes[best] - K) ? i : best, 0);
+  // ── Build market price lookup from actual quotes ──
+  // Key: "strike|expiry|type" → { bid, ask, ltp, iv, volume }
+  const mktPrices = {};
+  if (rawQuotes) {
+    for (const q of rawQuotes) {
+      const key = `${q.strike}|${q.expiry}|${q.type}`;
+      mktPrices[key] = {
+        bid: q.bid || 0,
+        ask: q.ask || 0,
+        ltp: q.ltp || q.ask || q.bid || 0,
+        iv: q.iv,
+        volume: q.volume || 0,
+      };
+    }
+  }
+
+  // Get the best available execution price
+  function getExecPrice(strike, expiry, type, side) {
+    const key = `${strike}|${expiry}|${type}`;
+    const mkt = mktPrices[key];
+    if (mkt) {
+      if (side === 'BUY')  return mkt.ask > 0 ? mkt.ask : mkt.ltp;
+      if (side === 'SELL') return mkt.bid > 0 ? mkt.bid : mkt.ltp;
+    }
+    // Fallback: BS theoretical
+    const ti = expiries.reduce((best, e, i) => Math.abs(e - expiry) < Math.abs(expiries[best] - expiry) ? i : best, 0);
+    const ki = strikes.reduce((best, s, i) => Math.abs(s - strike) < Math.abs(strikes[best] - strike) ? i : best, 0);
     const sigma = ivGrid[ti][ki];
-    return bsCallPrice(spot, K, T, r, q, sigma);
+    return bsCallPrice(spot, strike, expiry, r, q, sigma);
+  }
+
+  function getVolume(strike, expiry, type) {
+    const key = `${strike}|${expiry}|${type}`;
+    return mktPrices[key]?.volume || 0;
   }
 
   function findAdjacentStrikes(targetK) {
@@ -244,103 +282,171 @@ function generateTradeRecommendations(surface, violations) {
     return { K_lower: strikes[lower], K_upper: strikes[upper] };
   }
 
-  // Butterfly trades from butterfly violations
+  // ── Butterfly trades ──
   const butterflyViols = violations.filter(v => v.type === 'BUTTERFLY');
-  for (const v of butterflyViols.slice(0, 5)) { // top 5
+  for (const v of butterflyViols.slice(0, 5)) {
     const adj = findAdjacentStrikes(v.strike);
     if (!adj) continue;
 
     const K1 = adj.K_lower, K2 = v.strike, K3 = adj.K_upper;
     const T = v.expiry;
-    const C1 = callPrice(K1, T), C2 = callPrice(K2, T), C3 = callPrice(K3, T);
-    const netCost = C1 - 2 * C2 + C3; // Should be negative (mispricing)
-    const expectedProfit = Math.abs(netCost);
-    const maxRisk = Math.max(Math.abs(netCost), 0.01);
 
-    if (expectedProfit < 0.01) continue;
+    // Use actual market prices: buy at ask, sell at bid
+    const buyPrice1  = getExecPrice(K1, T, 'CE', 'BUY');
+    const sellPrice2 = getExecPrice(K2, T, 'CE', 'SELL');
+    const buyPrice3  = getExecPrice(K3, T, 'CE', 'BUY');
+
+    // Net debit = what you pay for buys - what you receive from sells
+    const netDebit = buyPrice1 - 2 * sellPrice2 + buyPrice3;
+
+    // Butterfly payoff: max at K2 = min(K2-K1, K3-K2)
+    const spreadWidth = Math.min(K2 - K1, K3 - K2);
+    const maxProfit = spreadWidth - netDebit; // profit if underlying lands at K2
+    const maxRisk = Math.max(netDebit, 0);    // if credit, risk = 0 (guaranteed profit)
+
+    // Minimum volume across legs
+    const minVol = Math.min(
+      getVolume(K1, T, 'CE'), getVolume(K2, T, 'CE'), getVolume(K3, T, 'CE')
+    );
+
+    if (maxProfit < 0.5) continue;
+
+    const breakeven1 = K1 + netDebit;
+    const breakeven2 = K3 - netDebit;
 
     recommendations.push({
       strategyType: 'BUTTERFLY',
-      description: `Butterfly Spread at K=${K2.toFixed(0)}, T=${T.toFixed(4)}`,
+      description: `Butterfly Spread ${K1.toFixed(0)}/${K2.toFixed(0)}/${K3.toFixed(0)}`,
       legs: [
-        { action: 'BUY',  optionType: 'CALL', strike: K1, expiry: T, quantity: 1, price: C1 },
-        { action: 'SELL', optionType: 'CALL', strike: K2, expiry: T, quantity: 2, price: C2 },
-        { action: 'BUY',  optionType: 'CALL', strike: K3, expiry: T, quantity: 1, price: C3 },
+        { action: 'BUY',  optionType: 'CALL', strike: K1, expiry: T, quantity: 1, price: buyPrice1 },
+        { action: 'SELL', optionType: 'CALL', strike: K2, expiry: T, quantity: 2, price: sellPrice2 },
+        { action: 'BUY',  optionType: 'CALL', strike: K3, expiry: T, quantity: 1, price: buyPrice3 },
       ],
-      estimatedProfit: expectedProfit,
-      maxRisk,
-      netPremium: netCost,
+      netDebit: Math.round(netDebit * 100) / 100,
+      maxProfit: Math.round(maxProfit * 100) / 100,
+      maxRisk: Math.round(maxRisk * 100) / 100,
+      profitPerLot: Math.round(maxProfit * lotSize * 100) / 100,
+      riskPerLot: Math.round(maxRisk * lotSize * 100) / 100,
+      lotSize,
+      breakeven: [Math.round(breakeven1 * 100) / 100, Math.round(breakeven2 * 100) / 100],
+      riskRewardRatio: maxRisk > 0 ? Math.round((maxProfit / maxRisk) * 100) / 100 : Infinity,
+      minLegVolume: minVol,
       severity: v.severity > 0.7 ? 'CRITICAL' : v.severity > 0.4 ? 'HIGH' : 'MEDIUM',
       urgency: v.severity > 0.7 ? 'Act immediately' : v.severity > 0.4 ? 'Act within session' : 'Monitor',
-      violationMagnitude: v.magnitude,
+      violationMagnitude: Math.round(v.magnitude * 10000) / 10000,
     });
   }
 
-  // Calendar trades from calendar violations
+  // ── Calendar trades ──
   const calendarViols = violations.filter(v => v.type === 'CALENDAR');
-  for (const v of calendarViols.slice(0, 3)) {
+  for (const v of calendarViols.slice(0, 5)) {
     const K = v.strike;
     const T2 = v.expiry;
     const T1_idx = expiries.indexOf(T2) - 1;
     if (T1_idx < 0) continue;
     const T1 = expiries[T1_idx];
 
-    const C_near = callPrice(K, T1), C_far = callPrice(K, T2);
-    const netCost = C_far - C_near;
-    const expectedProfit = Math.abs(netCost);
-    const maxRisk = Math.max(Math.abs(netCost), 0.01);
+    // Sell near-term (expensive due to higher IV), buy far-term
+    const sellNear = getExecPrice(K, T1, 'CE', 'SELL');
+    const buyFar   = getExecPrice(K, T2, 'CE', 'BUY');
+    const netDebit = buyFar - sellNear; // positive = debit, negative = credit
 
-    if (expectedProfit < 0.01) continue;
+    // IV values for the near vs far term at this strike
+    const ti1 = expiries.indexOf(T1), ti2 = expiries.indexOf(T2);
+    const ki = strikes.indexOf(K);
+    const ivNear = (ti1 >= 0 && ki >= 0) ? ivGrid[ti1][ki] : 0;
+    const ivFar  = (ti2 >= 0 && ki >= 0) ? ivGrid[ti2][ki] : 0;
+
+    // Calendar spread profit: if IVs converge, the near-term option decays faster.
+    // Estimated max profit ≈ near-term theta decay advantage × time
+    // Simplified: profit ≈ sellNear premium (near decays to 0 faster)
+    const maxProfit = sellNear - Math.max(netDebit, 0); // premium captured minus cost
+    const maxRisk = Math.max(netDebit, 0);
+
+    if (maxProfit < 0.5) continue;
 
     recommendations.push({
       strategyType: 'CALENDAR',
-      description: `Calendar Spread at K=${K.toFixed(0)}, T=${T1.toFixed(4)}→${T2.toFixed(4)}`,
+      description: `Calendar Spread K=${K.toFixed(0)}, Near→Far`,
       legs: [
-        { action: 'SELL', optionType: 'CALL', strike: K, expiry: T1, quantity: 1, price: C_near },
-        { action: 'BUY',  optionType: 'CALL', strike: K, expiry: T2, quantity: 1, price: C_far },
+        { action: 'SELL', optionType: 'CALL', strike: K, expiry: T1, quantity: 1, price: sellNear },
+        { action: 'BUY',  optionType: 'CALL', strike: K, expiry: T2, quantity: 1, price: buyFar },
       ],
-      estimatedProfit: expectedProfit,
-      maxRisk,
-      netPremium: netCost,
+      netDebit: Math.round(netDebit * 100) / 100,
+      maxProfit: Math.round(maxProfit * 100) / 100,
+      maxRisk: Math.round(maxRisk * 100) / 100,
+      profitPerLot: Math.round(maxProfit * lotSize * 100) / 100,
+      riskPerLot: Math.round(maxRisk * lotSize * 100) / 100,
+      lotSize,
+      ivNear: Math.round(ivNear * 10000) / 100, // as percentage
+      ivFar: Math.round(ivFar * 10000) / 100,
+      ivDiff: Math.round((ivNear - ivFar) * 10000) / 100,
+      riskRewardRatio: maxRisk > 0 ? Math.round((maxProfit / maxRisk) * 100) / 100 : Infinity,
       severity: v.severity > 0.5 ? 'HIGH' : 'MEDIUM',
       urgency: v.severity > 0.5 ? 'Act within session' : 'Monitor',
-      violationMagnitude: v.magnitude,
+      violationMagnitude: Math.round(v.magnitude * 10000) / 10000,
     });
   }
 
-  // Vertical trades from monotonicity violations
+  // ── Vertical (Bull Call) trades from monotonicity violations ──
   const monoViols = violations.filter(v => v.type === 'MONOTONICITY');
-  for (const v of monoViols.slice(0, 3)) {
-    const K = v.strike;
-    const ki = strikes.indexOf(K);
+  for (const v of monoViols.slice(0, 5)) {
+    const K_upper = v.strike;
+    const ki = strikes.indexOf(K_upper);
     if (ki <= 0) continue;
     const K_lower = strikes[ki - 1];
     const T = v.expiry;
 
-    const C_lower = callPrice(K_lower, T), C_upper = callPrice(K, T);
-    const expectedProfit = C_upper - C_lower;
-    const maxRisk = K - K_lower;
+    // Buy lower strike, sell higher strike
+    const buyLower  = getExecPrice(K_lower, T, 'CE', 'BUY');
+    const sellUpper = getExecPrice(K_upper, T, 'CE', 'SELL');
 
-    if (expectedProfit < 0.01) continue;
+    // Net credit (should be positive because of the monotonicity violation)
+    const netCredit = sellUpper - buyLower;
+    const spreadWidth = K_upper - K_lower;
+
+    // If credit: max profit = credit, max risk = spread_width - credit
+    // If debit: max profit = spread_width - debit, max risk = debit
+    let maxProfit, maxRisk;
+    if (netCredit > 0) {
+      maxProfit = netCredit; // Guaranteed minimum profit
+      maxRisk = Math.max(spreadWidth - netCredit, 0);
+    } else {
+      maxProfit = spreadWidth + netCredit; // spreadWidth - |debit|
+      maxRisk = Math.abs(netCredit);
+    }
+
+    if (maxProfit < 0.5) continue;
+
+    const breakeven = K_lower + Math.abs(netCredit);
 
     recommendations.push({
       strategyType: 'VERTICAL',
-      description: `Bull Call Spread K=${K_lower.toFixed(0)}/${K.toFixed(0)}, T=${T.toFixed(4)}`,
+      description: `Bull Call Spread ${K_lower.toFixed(0)}/${K_upper.toFixed(0)}`,
       legs: [
-        { action: 'BUY',  optionType: 'CALL', strike: K_lower, expiry: T, quantity: 1, price: C_lower },
-        { action: 'SELL', optionType: 'CALL', strike: K,       expiry: T, quantity: 1, price: C_upper },
+        { action: 'BUY',  optionType: 'CALL', strike: K_lower, expiry: T, quantity: 1, price: buyLower },
+        { action: 'SELL', optionType: 'CALL', strike: K_upper, expiry: T, quantity: 1, price: sellUpper },
       ],
-      estimatedProfit: expectedProfit,
-      maxRisk,
-      netPremium: C_lower - C_upper,
+      netDebit: Math.round(-netCredit * 100) / 100, // positive = you pay, negative = you receive
+      maxProfit: Math.round(maxProfit * 100) / 100,
+      maxRisk: Math.round(maxRisk * 100) / 100,
+      profitPerLot: Math.round(maxProfit * lotSize * 100) / 100,
+      riskPerLot: Math.round(maxRisk * lotSize * 100) / 100,
+      lotSize,
+      breakeven: [Math.round(breakeven * 100) / 100],
+      riskRewardRatio: maxRisk > 0 ? Math.round((maxProfit / maxRisk) * 100) / 100 : Infinity,
       severity: v.severity > 0.3 ? 'HIGH' : 'MEDIUM',
       urgency: 'Act within session',
-      violationMagnitude: v.magnitude,
+      violationMagnitude: Math.round(v.magnitude * 10000) / 10000,
     });
   }
 
-  // Sort by estimated profit descending
-  recommendations.sort((a, b) => b.estimatedProfit - a.estimatedProfit);
+  // Sort by risk-reward ratio descending (best trades first)
+  recommendations.sort((a, b) => {
+    const rrA = a.riskRewardRatio === Infinity ? 9999 : a.riskRewardRatio;
+    const rrB = b.riskRewardRatio === Infinity ? 9999 : b.riskRewardRatio;
+    return rrB - rrA;
+  });
   return recommendations;
 }
 
@@ -359,8 +465,8 @@ export function analyzeArbitrage(data) {
   // 2. Detect violations
   const violations = detectViolations(surface);
 
-  // 3. Generate trade recommendations
-  const trades = generateTradeRecommendations(surface, violations);
+  // 3. Generate trade recommendations (using actual market prices)
+  const trades = generateTradeRecommendations(surface, violations, data.quotes, data.symbol);
 
   const elapsed = Date.now() - startTime;
 

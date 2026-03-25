@@ -26,6 +26,12 @@ export function LiveScannerPage() {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<any | null>(null);
 
+  // Auto-refresh streaming state
+  const [autoRefresh, setAutoRefresh] = useState(false);
+  const [refreshCount, setRefreshCount] = useState(0);
+  const [lastUpdate, setLastUpdate] = useState<string | null>(null);
+  const autoRefreshRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   // Autocomplete state
   const [searchQuery, setSearchQuery] = useState('NIFTY');
   const [suggestions, setSuggestions] = useState<SearchResult[]>([]);
@@ -85,12 +91,11 @@ export function LiveScannerPage() {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  const handleScan = async () => {
+  const doScan = async () => {
     if (!symbol) return;
     setShowDropdown(false);
     setLoading(true);
     setError(null);
-    setResult(null);
 
     try {
       const response = await fetch(
@@ -104,6 +109,8 @@ export function LiveScannerPage() {
       }
       
       setResult(data);
+      setLastUpdate(new Date().toLocaleTimeString('en-IN'));
+      setRefreshCount(c => c + 1);
     } catch (err: any) {
       if (err.name === 'TypeError') {
         setError('Cannot connect to the analysis server. Please try again in a moment.');
@@ -112,10 +119,33 @@ export function LiveScannerPage() {
       } else {
         setError(err.message || 'An error occurred during live scan.');
       }
+      // Stop auto-refresh on error
+      if (autoRefresh) {
+        setAutoRefresh(false);
+        if (autoRefreshRef.current) clearInterval(autoRefreshRef.current);
+      }
     } finally {
       setLoading(false);
     }
   };
+
+  const handleScan = () => {
+    setResult(null);
+    setRefreshCount(0);
+    doScan();
+  };
+
+  // Auto-refresh effect
+  useEffect(() => {
+    if (autoRefresh) {
+      autoRefreshRef.current = setInterval(() => {
+        doScan();
+      }, 5000);
+    } else {
+      if (autoRefreshRef.current) clearInterval(autoRefreshRef.current);
+    }
+    return () => { if (autoRefreshRef.current) clearInterval(autoRefreshRef.current); };
+  }, [autoRefresh, symbol, exchange]);
 
   // IST market hours check
   const now = new Date();
@@ -226,14 +256,30 @@ export function LiveScannerPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <Button 
-                onClick={handleScan} 
-                disabled={loading || !symbol}
-                className="btn-primary w-full md:w-auto min-w-[140px]"
-              >
-                {loading ? <Spinner size="sm" className="mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
-                {loading ? 'Scanning...' : 'Scan Now'}
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button 
+                  onClick={handleScan} 
+                  disabled={loading || !symbol}
+                  className="btn-primary w-full md:w-auto min-w-[140px]"
+                >
+                  {loading ? <Spinner size="sm" className="mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+                  {loading ? 'Scanning...' : 'Scan Now'}
+                </Button>
+                {result && (
+                  <Button
+                    onClick={() => setAutoRefresh(!autoRefresh)}
+                    className={`min-w-[130px] text-sm ${autoRefresh 
+                      ? 'bg-success-500/20 text-success-400 border border-success-500/30 hover:bg-danger-500/20 hover:text-danger-400'
+                      : 'bg-surface-700/50 text-surface-300 border border-surface-600 hover:bg-surface-600/50'}`}
+                  >
+                    {autoRefresh ? (
+                      <><Activity className="h-3 w-3 mr-1 animate-pulse" /> Stop Live</>
+                    ) : (
+                      <><Activity className="h-3 w-3 mr-1" /> Go Live</>
+                    )}
+                  </Button>
+                )}
+              </div>
             </div>
             
             {error && (
@@ -262,6 +308,16 @@ export function LiveScannerPage() {
 
             {/* Latency & Engine Info */}
             <div className="flex flex-wrap gap-3 text-xs text-surface-500">
+              {autoRefresh && (
+                <span className="px-2 py-1 rounded bg-success-500/20 border border-success-500/30 text-success-400 font-bold animate-pulse">
+                  🟢 LIVE — Refresh #{refreshCount}
+                </span>
+              )}
+              {lastUpdate && (
+                <span className="px-2 py-1 rounded bg-surface-800 border border-surface-700">
+                  Last: {lastUpdate}
+                </span>
+              )}
               <span className="px-2 py-1 rounded bg-surface-800 border border-surface-700">
                 Engine: {result.engine === 'js-serverless' ? '⚡ JS Serverless' : '🔧 C++ Native'}
               </span>
@@ -347,18 +403,40 @@ export function LiveScannerPage() {
                           
                           <div className="grid grid-cols-2 gap-2 mt-4 text-sm">
                             <div className="flex justify-between p-2 bg-surface-800 rounded">
-                              <span className="text-surface-400">Est. Profit:</span>
-                              <span className="text-success-400 font-bold">₹{trade.estimatedProfit.toFixed(2)}</span>
+                              <span className="text-surface-400">Max Profit:</span>
+                              <span className="text-success-400 font-bold">₹{trade.maxProfit?.toFixed(2)}</span>
                             </div>
                             <div className="flex justify-between p-2 bg-surface-800 rounded">
                               <span className="text-surface-400">Max Risk:</span>
-                              <span className="text-warning-400 font-bold">₹{trade.maxRisk.toFixed(2)}</span>
+                              <span className="text-warning-400 font-bold">₹{trade.maxRisk?.toFixed(2)}</span>
                             </div>
                             <div className="flex justify-between p-2 bg-surface-800 rounded">
-                              <span className="text-surface-400">Net Premium:</span>
-                              <span className="text-surface-200 font-semibold">₹{trade.netPremium.toFixed(2)}</span>
+                              <span className="text-surface-400">Profit/Lot:</span>
+                              <span className="text-success-400 font-bold">₹{trade.profitPerLot?.toLocaleString('en-IN')}</span>
                             </div>
                             <div className="flex justify-between p-2 bg-surface-800 rounded">
+                              <span className="text-surface-400">Risk/Lot:</span>
+                              <span className="text-warning-400 font-bold">₹{trade.riskPerLot?.toLocaleString('en-IN')}</span>
+                            </div>
+                            <div className="flex justify-between p-2 bg-surface-800 rounded">
+                              <span className="text-surface-400">R:R Ratio:</span>
+                              <span className="text-primary-400 font-bold">
+                                {trade.riskRewardRatio === Infinity ? '∞ (free)' : `${trade.riskRewardRatio}:1`}
+                              </span>
+                            </div>
+                            <div className="flex justify-between p-2 bg-surface-800 rounded">
+                              <span className="text-surface-400">Lot Size:</span>
+                              <span className="text-surface-200 font-semibold">{trade.lotSize}</span>
+                            </div>
+                            {trade.breakeven && (
+                              <div className="flex justify-between p-2 bg-surface-800 rounded col-span-2">
+                                <span className="text-surface-400">Breakeven:</span>
+                                <span className="text-surface-200 font-semibold">
+                                  {trade.breakeven.map((b: number) => `₹${b.toLocaleString('en-IN')}`).join(' / ')}
+                                </span>
+                              </div>
+                            )}
+                            <div className="flex justify-between p-2 bg-surface-800 rounded col-span-2">
                               <span className="text-surface-400">Urgency:</span>
                               <span className={`font-semibold ${
                                 trade.severity === 'CRITICAL' ? 'text-danger-400' : 
@@ -376,7 +454,7 @@ export function LiveScannerPage() {
                                     {leg.action} {leg.quantity}x
                                   </span>
                                   <span>{leg.optionType} @ {leg.strike}</span>
-                                  <span className="text-surface-400 font-mono">₹{leg.price.toFixed(2)}</span>
+                                  <span className="text-surface-400 font-mono">₹{leg.price?.toFixed(2)}</span>
                                 </li>
                               ))}
                             </ul>

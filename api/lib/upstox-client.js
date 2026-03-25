@@ -174,6 +174,7 @@ export async function fetchOptionChain(symbol, exchange, token) {
             allQuotes.push({
               strike, expiry: parseFloat(T.toFixed(6)), iv,
               bid: ce.bid_price || 0, ask: ce.ask_price || 0,
+              ltp: ce.ltp || 0,
               volume: ce.volume || 0, type: 'CE',
             });
           }
@@ -191,6 +192,7 @@ export async function fetchOptionChain(symbol, exchange, token) {
             allQuotes.push({
               strike, expiry: parseFloat(T.toFixed(6)), iv,
               bid: pe.bid_price || 0, ask: pe.ask_price || 0,
+              ltp: pe.ltp || 0,
               volume: pe.volume || 0, type: 'PE',
             });
           }
