@@ -113,6 +113,9 @@ function impliedVolatility(targetPrice, S, K, T, r, q, type) {
   return (low + high) / 2;
 }
 
+// In-memory expiry cache to avoid repeated /option/contract calls (5-min TTL)
+const expiryCache = {};
+
 export async function fetchOptionChain(symbol, exchange, token) {
   // Dynamically resolve the instrument key
   const instrumentKey = await resolveInstrumentKey(symbol, exchange, token);
@@ -123,17 +126,25 @@ export async function fetchOptionChain(symbol, exchange, token) {
     const quoteData = await upstoxFetch(
       `/market-quote/quotes?instrument_key=${encodeURIComponent(instrumentKey)}`, token
     );
-    // V2 API keys the response arbitrarily (e.g. "NSE_EQ:RELIANCE" instead of "NSE_EQ|INE...").
-    // Since we only query 1 instrument, we can safely take the first value.
     const quoteObj = Object.values(quoteData?.data || {})[0];
     spotPrice = quoteObj?.last_price || quoteObj?.ohlc?.close || 0;
   } catch { /* fallback below */ }
 
-  // 2. Fetch available expiries
-  const expiryData = await upstoxFetch(
-    `/option/contract?instrument_key=${encodeURIComponent(instrumentKey)}`, token
-  );
-  const expiries = [...new Set(expiryData?.data?.map(d => d.expiry).filter(Boolean))].sort();
+  // 2. Fetch available expiries (use cache if fresh)
+  let expiries;
+  const cacheKey = instrumentKey;
+  const cached = expiryCache[cacheKey];
+  if (cached && (Date.now() - cached.ts < 5 * 60 * 1000)) {
+    expiries = cached.expiries;
+  } else {
+    const expiryData = await upstoxFetch(
+      `/option/contract?instrument_key=${encodeURIComponent(instrumentKey)}`, token
+    );
+    expiries = [...new Set(expiryData?.data?.map(d => d.expiry).filter(Boolean))].sort();
+    if (expiries.length > 0) {
+      expiryCache[cacheKey] = { expiries, ts: Date.now() };
+    }
+  }
   if (expiries.length === 0) throw new Error(`No option contracts found for ${symbol}. This stock may not have F&O trading.`);
 
   const targetExpiries = expiries.slice(0, 3);

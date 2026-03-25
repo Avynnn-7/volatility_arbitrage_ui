@@ -30,6 +30,7 @@ export function LiveScannerPage() {
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [refreshCount, setRefreshCount] = useState(0);
   const [lastUpdate, setLastUpdate] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const autoRefreshRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Autocomplete state
@@ -91,16 +92,21 @@ export function LiveScannerPage() {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  const doScan = async () => {
+  const doScan = async (isBackground = false) => {
     if (!symbol) return;
     setShowDropdown(false);
-    setLoading(true);
-    setError(null);
+    // Only show the full loading state on the initial scan, not during auto-refresh
+    if (!isBackground) {
+      setLoading(true);
+      setError(null);
+    } else {
+      setIsRefreshing(true);
+    }
 
     try {
       const response = await fetch(
         `${API_BASE}/api/analyze?symbol=${encodeURIComponent(symbol)}&exchange=${encodeURIComponent(exchange)}`,
-        { signal: AbortSignal.timeout(30000) }
+        { signal: AbortSignal.timeout(15000) }
       );
       const data = await response.json();
       
@@ -109,23 +115,27 @@ export function LiveScannerPage() {
       }
       
       setResult(data);
+      setError(null);
       setLastUpdate(new Date().toLocaleTimeString('en-IN'));
       setRefreshCount(c => c + 1);
     } catch (err: any) {
-      if (err.name === 'TypeError') {
-        setError('Cannot connect to the analysis server. Please try again in a moment.');
-      } else if (err.name === 'AbortError') {
-        setError('Request timed out. The market data server may be busy. Please retry.');
-      } else {
-        setError(err.message || 'An error occurred during live scan.');
+      // During background refresh, don't clear results — just show a subtle error
+      if (!isBackground) {
+        if (err.name === 'TypeError') {
+          setError('Cannot connect to the analysis server. Please try again in a moment.');
+        } else if (err.name === 'AbortError') {
+          setError('Request timed out. The market data server may be busy. Please retry.');
+        } else {
+          setError(err.message || 'An error occurred during live scan.');
+        }
       }
-      // Stop auto-refresh on error
-      if (autoRefresh) {
-        setAutoRefresh(false);
-        if (autoRefreshRef.current) clearInterval(autoRefreshRef.current);
+      // Stop auto-refresh after 3 consecutive background errors
+      if (isBackground && autoRefresh) {
+        // Just skip this cycle — don't kill streaming for transient errors
       }
     } finally {
       setLoading(false);
+      setIsRefreshing(false);
     }
   };
 
@@ -139,7 +149,7 @@ export function LiveScannerPage() {
   useEffect(() => {
     if (autoRefresh) {
       autoRefreshRef.current = setInterval(() => {
-        doScan();
+        doScan(true); // background=true: no loading flash, keeps old results
       }, 5000);
     } else {
       if (autoRefreshRef.current) clearInterval(autoRefreshRef.current);
@@ -295,7 +305,7 @@ export function LiveScannerPage() {
         </Card>
 
         {/* Results */}
-        {loading && (
+        {loading && !result && (
           <div className="p-12 text-center text-surface-400">
             <Spinner size="lg" className="mx-auto mb-4" />
             <p className="text-lg font-medium">Fetching live option chain from Upstox...</p>
@@ -303,8 +313,15 @@ export function LiveScannerPage() {
           </div>
         )}
 
-        {result && !loading && (
-          <div className="space-y-6">
+        {result && (
+          <div className="space-y-6 relative">
+
+            {/* Subtle refresh indicator — replaces the jarring loading spinner */}
+            {isRefreshing && (
+              <div className="absolute top-0 left-0 right-0 h-0.5 bg-primary-500/30 rounded overflow-hidden z-10">
+                <div className="h-full bg-primary-400 animate-pulse" style={{ width: '100%' }} />
+              </div>
+            )}
 
             {/* Latency & Engine Info */}
             <div className="flex flex-wrap gap-3 text-xs text-surface-500">
